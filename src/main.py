@@ -1,36 +1,40 @@
-import os
-
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from src import models, schemas
 from src.database import init_db, get_db
+from src.config import settings
 
-app = FastAPI()
-USERNAME = os.getenv("USERNAME", "cori")
+app = FastAPI(title="User CRUD API")
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "username": settings.USERNAME,
+        "testing": settings.TESTING
+    }
 
 @app.on_event("startup")
 async def startup():
-    await init_db()
+    if not settings.TESTING:
+        await init_db()
 
-
-@app.post(f"/{USERNAME}/users/", response_model=schemas.User)
+@app.post(f"/{settings.USERNAME}/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    user = models.User(name=user.name)
-    db.add(user)
+    db_user = models.User(name=user.name)
+    db.add(db_user)
     await db.commit()
-    await db.refresh(user)
-    return user
+    await db.refresh(db_user)
+    return db_user
 
-
-@app.get(f"/{USERNAME}/users/", response_model=list[schemas.User])
+@app.get(f"/{settings.USERNAME}/users/", response_model=list[schemas.User])
 async def read_users(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).offset(skip).limit(limit))
     users = result.scalars().all()
     return users
 
-
-@app.get(f"/{USERNAME}/users/{user_id}", response_model=schemas.User)
+@app.get(f"/{settings.USERNAME}/users/{{user_id}}", response_model=schemas.User)
 async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     user = result.scalar_one_or_none()
@@ -38,34 +42,23 @@ async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-
-@app.patch(f"/{USERNAME}/users/{user_id}", response_model=schemas.User)
+@app.patch(f"/{settings.USERNAME}/users/{{user_id}}", response_model=schemas.User)
 async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     db_user = result.scalar_one_or_none()
-    
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-
     db_user.name = user.name
     await db.commit()
-    
+    await db.refresh(db_user)
     return db_user
 
-
-@app.delete(f"/{USERNAME}/users/{user_id}", response_model=dict)
+@app.delete(f"/{settings.USERNAME}/users/{{user_id}}", response_model=dict)
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     db_user = result.scalar_one_or_none()
-    
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-
     await db.delete(db_user)
     await db.commit()
-    
     return {"detail": "User deleted"}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "username": USERNAME}
