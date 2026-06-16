@@ -65,6 +65,7 @@ jobs:
             -e POSTGRES_PASSWORD=kubsu \
             -e POSTGRES_DB=kubsu \
             -e TEST_USERNAME=cori \
+            -e PYTHONPATH=/app \
             app:test \
             pytest tests/ -v --tb=short
 
