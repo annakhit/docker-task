@@ -110,7 +110,7 @@ jobs:
           target: runtime
 
       - name: Image info
-        run:
+        run: |
           echo "Image built and pushed successfully"
           echo "Tags: ${{ steps.meta.outputs.tags }}"
           echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
