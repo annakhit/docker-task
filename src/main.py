@@ -20,7 +20,7 @@ async def startup():
     if not settings.TESTING:
         await init_db()
 
-@app.post(f"/{settings.USERNAME}/users/", response_model=schemas.User)
+@app.post(f"/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     db_user = models.User(name=user.name)
     db.add(db_user)
@@ -28,13 +28,13 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
     await db.refresh(db_user)
     return db_user
 
-@app.get(f"/{settings.USERNAME}/users/", response_model=list[schemas.User])
+@app.get(f"/users/", response_model=list[schemas.User])
 async def read_users(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).offset(skip).limit(limit))
     users = result.scalars().all()
     return users
 
-@app.get(f"/{settings.USERNAME}/users/{{user_id}}", response_model=schemas.User)
+@app.get(f"/users/{{user_id}}", response_model=schemas.User)
 async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     user = result.scalar_one_or_none()
