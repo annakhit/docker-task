@@ -42,7 +42,7 @@ async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.patch(f"/{settings.USERNAME}/users/{{user_id}}", response_model=schemas.User)
+@app.patch(f"/users/{{user_id}}", response_model=schemas.User)
 async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     db_user = result.scalar_one_or_none()
@@ -53,7 +53,7 @@ async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession =
     await db.refresh(db_user)
     return db_user
 
-@app.delete(f"/{settings.USERNAME}/users/{{user_id}}", response_model=dict)
+@app.delete(f"/users/{{user_id}}", response_model=dict)
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.User).where(models.User.id == user_id))
     db_user = result.scalar_one_or_none()
